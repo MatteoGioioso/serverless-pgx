@@ -1,4 +1,4 @@
-package pgxServerless
+package slsPgx
 
 import (
 	"math"
