@@ -1,4 +1,4 @@
-![GitHub](https://img.shields.io/github/license/MatteoGioioso/pgx-serverless)
+![GitHub](https://img.shields.io/github/license/MatteoGioioso/serverless-pgx)
 
 # PGX Serverless
 Pgx-serverless is a wrapper for **[pgx](https://github.com/jackc/pgx)** go package.
@@ -25,6 +25,12 @@ using trusted backoff algorithms.
 It has been tested with AWS's RDS Postgres, Aurora Postgres, and Aurora Serverless.
 
 Feel free to request additional features and contribute =)
+
+## Install
+
+```
+github.com/MatteoGioioso/serverless-pgx/slsPgx
+```
 
 ## Usage
 
