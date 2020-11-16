@@ -30,7 +30,6 @@ type logger struct {
 
 func newLogger(debug bool) logger {
 	enc := json.NewEncoder(os.Stdout)
-	enc.SetIndent("", "    ")
 	return logger{
 		enc:   enc,
 		debug: debug,
