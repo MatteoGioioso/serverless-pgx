@@ -116,7 +116,7 @@ func Test_slsConn_Connect(t *testing.T) {
 			}
 
 			s := New(tt.fields.Config)
-			_, err := s.Connect(tt.args.ctx, tt.args.connectionString)
+			err := s.Connect(tt.args.ctx, tt.args.connectionString)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Connect() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -209,7 +209,7 @@ func Test_slsConn_getIdleProcessesListByMinimumTimeout(t *testing.T) {
 			}
 
 			s := New(SlsConnConfigParams{})
-			if _, err := s.Connect(tt.args.ctx, connectionString); err != nil {
+			if err := s.Connect(tt.args.ctx, connectionString); err != nil {
 				t.Error("Test failed: ", err)
 				return
 			}
@@ -258,7 +258,7 @@ func TestSlsConn_getProcessCount(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := New(SlsConnConfigParams{})
-			if _, err := c.Connect(context.Background(), connectionString); err != nil {
+			if err := c.Connect(context.Background(), connectionString); err != nil {
 				t.Errorf("getProcessCount() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
@@ -288,7 +288,7 @@ func Test_slsConn_parseURL(t *testing.T) {
 		connString string
 	}
 	type want struct {
-		user string
+		user     string
 		database string
 	}
 	tests := []struct {
@@ -298,8 +298,8 @@ func Test_slsConn_parseURL(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name:    "Should parse a correct url",
-			args:    args{connString: connectionString},
+			name: "Should parse a correct url",
+			args: args{connString: connectionString},
 			want: want{
 				user:     "postgres",
 				database: "postgres",
@@ -307,8 +307,8 @@ func Test_slsConn_parseURL(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "Should parse a correct url",
-			args:    args{connString: "postgres://matteo:mypass@pg–instance1.123456789012.us-east-1.rds.amazonaws.com:5432/posts?sslmode=disable"},
+			name: "Should parse a correct url",
+			args: args{connString: "postgres://matteo:mypass@pg–instance1.123456789012.us-east-1.rds.amazonaws.com:5432/posts?sslmode=disable"},
 			want: want{
 				user:     "matteo",
 				database: "posts",
@@ -316,8 +316,8 @@ func Test_slsConn_parseURL(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "Should parse an incorrect url",
-			args:    args{connString: "https://someurl.com"},
+			name: "Should parse an incorrect url",
+			args: args{connString: "https://someurl.com"},
 			want: want{
 				user:     "",
 				database: "",
@@ -332,7 +332,7 @@ func Test_slsConn_parseURL(t *testing.T) {
 			if err := s.parseURL(tt.args.connString); (err != nil) != tt.wantErr {
 				t.Errorf("parseURL() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			
+
 			w := want{
 				user:     s.connCred.user,
 				database: s.connCred.database,
@@ -363,11 +363,11 @@ func TestSlsConn_Query(t *testing.T) {
 			s2 := New(SlsConnConfigParams{
 				Debug: Bool(true),
 			})
-			if _, err := s1.Connect(context.Background(), connectionString); err != nil {
+			if err := s1.Connect(context.Background(), connectionString); err != nil {
 				t.Error("Test failed: ", err)
 				return
 			}
-			if _, err := s2.Connect(context.Background(), connectionString); err != nil {
+			if err := s2.Connect(context.Background(), connectionString); err != nil {
 				t.Error("Test failed: ", err)
 				return
 			}
@@ -377,14 +377,14 @@ func TestSlsConn_Query(t *testing.T) {
 				t.Error("Could not kill process: ", err)
 				return
 			}
-			
+
 			var res int
 			rows, err := s2.Query(context.Background(), "SELECT 1+1 AS result")
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Query() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			
+
 			for rows.Next() {
 				if err := rows.Scan(&res); err != nil {
 					return
@@ -416,11 +416,11 @@ func TestSlsConn_Exec(t *testing.T) {
 			s2 := New(SlsConnConfigParams{
 				Debug: Bool(true),
 			})
-			if _, err := s1.Connect(context.Background(), connectionString); err != nil {
+			if err := s1.Connect(context.Background(), connectionString); err != nil {
 				t.Error("Test failed: ", err)
 				return
 			}
-			if _, err := s2.Connect(context.Background(), connectionString); err != nil {
+			if err := s2.Connect(context.Background(), connectionString); err != nil {
 				t.Error("Test failed: ", err)
 				return
 			}
@@ -430,7 +430,7 @@ func TestSlsConn_Exec(t *testing.T) {
 				t.Error("Could not kill process: ", err)
 				return
 			}
-			
+
 			got, err := s2.Exec(context.Background(), "SELECT 1+1 AS result")
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Query() error = %v, wantErr %v", err, tt.wantErr)
@@ -438,6 +438,117 @@ func TestSlsConn_Exec(t *testing.T) {
 			}
 			if !reflect.DeepEqual(got.String(), tt.want) {
 				t.Errorf("Query() got = %v, want %v", got.String(), tt.want)
+			}
+		})
+	}
+}
+
+func TestSlsConn_Clean(t *testing.T) {
+	type fields struct {
+		config     slsConnConfig
+		delay      delay
+		tempConfig SlsConnConfigParams
+		conn       *pgx.Conn
+		logger     Logger
+		connCred   connCred
+	}
+	type args struct {
+		ctx    context.Context
+		config SlsConnConfigParams
+		numOfClients int
+		delay time.Duration
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want int
+		wantErr bool
+	}{
+		{
+			name:    "Should cleanup zombie connections",
+			args:    args{
+				config: SlsConnConfigParams{Debug: Bool(true)},
+				ctx: context.Background(),
+				numOfClients: 80,
+				delay: 1,
+			},
+			want: 79,
+			wantErr: false,
+		},
+		{
+			name:    "Should not cleanup connections, none within the default delay",
+			args:    args{
+				config: SlsConnConfigParams{
+					Debug: Bool(true),
+					MinConnectionIdleTimeSec: Float32(3),
+				},
+				ctx: context.Background(),
+				numOfClients: 80,
+				delay: 0,
+			},
+			want: 0,
+			wantErr: false,
+		},
+		{
+			name:    "Should clean on certain amount of connections because limit is specified in the config",
+			args:    args{
+				config: SlsConnConfigParams{
+					MaxIdleConnectionsToKill: Int(10),
+					Debug:                    Bool(true),
+				},
+				ctx: context.Background(),
+				numOfClients: 80,
+				delay: 1,
+			},
+			want: 10,
+			wantErr: false,
+		},
+		{
+			name:    "Should not kill connections, not enough clients connected",
+			args:    args{
+				config: SlsConnConfigParams{
+					MaxIdleConnectionsToKill: Int(10),
+					Debug:                    Bool(true),
+				},
+				ctx: context.Background(),
+				numOfClients: 70,
+				delay: 3,
+			},
+			want: 0,
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			s := New(tt.args.config)
+			if err := s.Connect(tt.args.ctx, connectionString); err != nil {
+				t.Error("Test failed: ", err)
+				return
+			}
+			mockClients := createMockClients(tt.args.numOfClients)
+
+			time.Sleep(tt.args.delay * time.Second)
+			// Wake up a client
+			if _, err := mockClients[0].Query(context.Background(), "SELECT 1+1 AS result"); err != nil {
+				t.Error("Test failed: ", err)
+				return
+			}
+			
+			got, err := s.Clean(tt.args.ctx)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Clean() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Killed process = %v, want %v", got, tt.want)
+			}
+			
+			cleanMockClients(mockClients)
+			if err := s.Close(tt.args.ctx); err != nil {
+				t.Error("Test failed: ", err)
+				return
 			}
 		})
 	}
