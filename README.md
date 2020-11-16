@@ -37,6 +37,60 @@ github.com/MatteoGioioso/serverless-pgx/slsPgx
 Declare the ServerlessClient outside the lambda handler
 
 ```go
+package main
+
+import (
+	"context"
+	"fmt"
+	"github.com/MatteoGioioso/serverless-pgx/slsPgx"
+	"github.com/aws/aws-lambda-go/events"
+	"github.com/aws/aws-lambda-go/lambda"
+	"os"
+)
+
+var (
+	serverlessClient = slsPgx.New(slsPgx.SlsConnConfigParams{
+		Debug: slsPgx.Bool(true),
+	})
+	user = os.Getenv("DB_USER")
+	password = os.Getenv("DB_PASSWORD")
+	host = os.Getenv("DB_HOST")
+	db = os.Getenv("DB_NAME")
+	connectionString = fmt.Sprintf("postgres://%v:%v@%v:5432/%v?sslmode=disable", user, password, host, db)
+)
+
+func function(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	if err := serverlessClient.Connect(context.Background(), connectionString); err != nil {
+		return events.APIGatewayProxyResponse{}, err
+	}
+
+	rows, err := serverlessClient.Query(context.Background(), "SELECT 1+1 AS result")
+	if err != nil {
+		return events.APIGatewayProxyResponse{}, err
+	}
+
+	for rows.Next() {
+		var res int
+		if err := rows.Scan(&res); err != nil {
+			return events.APIGatewayProxyResponse{}, err
+		}
+		
+		fmt.Println(res)
+	}
+    
+	if _, err := serverlessClient.Clean(context.Background()); err != nil {
+		return events.APIGatewayProxyResponse{}, err
+	}	
+
+	return events.APIGatewayProxyResponse{
+		StatusCode:        200,
+		Body:              "Done",
+	}, nil
+}
+
+func main() {
+	lambda.Start(function)
+}
 
 
 ```
