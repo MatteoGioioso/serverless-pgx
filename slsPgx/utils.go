@@ -32,10 +32,14 @@ func Float32(value float32) *float32 {
 const (
 	tooManyClientsErr        = "sorry, too many clients already"
 	terminatingConnectionErr = "terminating connection due to administrator command"
+	replicationConnectionsSlotErr = "remaining connection slots are reserved for non-replication superuser connections"
 )
 
 var (
-	connectionErrors = []string{tooManyClientsErr}
+	connectionErrors = []string{
+		tooManyClientsErr,
+		replicationConnectionsSlotErr,
+	}
 	queryErrors = []string{terminatingConnectionErr}
 )
 
